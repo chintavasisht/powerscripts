@@ -1,13 +1,20 @@
 ﻿Login-AzureRmAccount
-$SubscriptionName = "Phani US"
+Get-AzureRmSubscription
+$SubscriptionName = "BrainScale - Business"
 $ResourceGroupName = "asrtestgrp"
 $Geo = "East US"
 $Vaultname = "asrtestvault"
-$Storageaccnt = "storageaccountname"
-$Vnet = "Virtual network Name" 
+$Storageaccnt = "asrautovas"
+$Vnet = "asrnetvas" 
 Select-AzureRmSubscription -SubscriptionName $SubscriptionName
+
+#Check site recovery services status
 Get-AzureRmResourceProvider -ProviderNamespace Microsoft.RecoveryServices
 Get-AzureRmResourceProvider -ProviderNamespace Microsoft.SiteRecovery
+Register-AzureRmResourceProvider -ProviderNamespace Microsoft.SiteRecovery
+Register-AzureRmResourceProvider -ProviderNamespace Microsoft.RecoveryServices
+
+
 New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Geo  
 $vault = New-AzureRmRecoveryServicesVault -Name $Vaultname -ResourceGroupName $ResourceGroupName -Location $Geo
 Set-AzureRmSiteRecoveryVaultSettings -ARSVault $vault
@@ -15,18 +22,23 @@ Set-AzureRmSiteRecoveryVaultSettings -ARSVault $vault
 #Specify site friendly name
 $sitename = "MySite"         
 New-AzureRmSiteRecoverySite -Name $sitename
-Get-AzureRmSiteRecovery
+Get-AzureRmSiteRecoveryJob
 
 #Generate and Download a Site registration key
-$Path = "C:\"
+$Path = "C:\Recovery Service Vault1"
 $SiteIdentifier = Get-AzureRmSiteRecoverySite -Name $sitename | Select -ExpandProperty SiteIdentifier
 Get-AzureRmRecoveryServicesVaultSettingsFile -Vault $vault -SiteIdentifier $SiteIdentifier -SiteFriendlyName $sitename -Path $Path
+    
 
 #Download the provider from Microsoft. Once after downloading, run the installer and at the end of installation continue to the registration step. When prompted, provide the downloaded site registration key, and complete registration of the Hyper-V host to the site.
+$source = "https://aka.ms/downloaddra"
+$destination = "C:\Recovery Service Vault1\MARS.exe"
+Invoke-WebRequest $source -OutFile $destination  
+
 https://aka.ms/downloaddra
 
 #Verify that the Hyper-V host is registered to the site 
-$server =  Get-AzureRmSiteRecoveryServer -FriendlyName $server-friendlyname
+$server =  Get-AzureRmSiteRecoveryServer  
 
 #Create a replication policy
 $ReplicationFrequencyInSeconds = "300";     #options are 30,300,900
@@ -43,6 +55,15 @@ $protectionContainer = Get-AzureRmSiteRecoveryProtectionContainer
 $Policy = Get-AzureRmSiteRecoveryPolicy -FriendlyName $PolicyName
 $associationJob  = Start-AzureRmSiteRecoveryPolicyAssociationJob -Policy $Policy -PrimaryProtectionContainer $protectionContainer
 
+#Discovery of Virtual machines on this Host
+$VM = Get-VM
+$VMNames = $VM.Name
+$VMCount = $VM.Count
+for ($i=0; $i -le $VMCount-($VMCount-1); $i++)
+    {
+        Write-Host " "
+        Write-Host $VMnames[$i];
+    }
 #Enable protection of virtual machines
 $VMFriendlyName = "VM Name"                    #Name of the VM you want to protect
 $protectionEntity = Get-AzureRmSiteRecoveryProtectionEntity -ProtectionContainer $protectionContainer -FriendlyName $VMFriendlyName
